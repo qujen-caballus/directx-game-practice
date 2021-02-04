@@ -10,6 +10,7 @@ HDC hdc;
 TCHAR ch = ' ';
 RECT rect;
 PAINTSTRUCT ps;
+bool vkKeys[256];
 
 const char CLASS_NAME[] = "WinMain";
 const char APP_TITLE[] = "Hello World";
@@ -41,11 +42,66 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 LRESULT WINAPI WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	short nVirtKey;
+	const short SHIFTED = (short)0x8000;
+	TEXTMETRIC tm;
+	DWORD chWidth = 20;
+	DWORD chHeight = 20;
 	switch (msg) 
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+	case WM_KEYDOWN:
+		vkKeys[wParam] = true;
+		switch (wParam)
+		{
+		case VK_SHIFT:
+			nVirtKey = GetKeyState(VK_LSHIFT);
+			if (nVirtKey & SHIFTED)
+				vkKeys[VK_LSHIFT] = true;
+			nVirtKey = GetKeyState(VK_RSHIFT);
+			if (nVirtKey & SHIFTED)
+				vkKeys[VK_RSHIFT] = true;
+			break;
+		case VK_CONTROL:
+			nVirtKey = GetKeyState(VK_LCONTROL);
+			if (nVirtKey & SHIFTED)
+				vkKeys[VK_LCONTROL] = true;
+			nVirtKey = GetKeyState(VK_RCONTROL);
+			if (nVirtKey & SHIFTED)
+				vkKeys[VK_RCONTROL] = true;
+			break;
+		}
+		InvalidateRect(hwnd, NULL, TRUE);
+		return 0;
+		break;
+	case WM_KEYUP:
+		vkKeys[wParam] = false;
+		switch (wParam)
+		{
+		case VK_SHIFT:
+			nVirtKey = GetKeyState(VK_LSHIFT);
+			if ((nVirtKey & SHIFTED) == 0)
+				vkKeys[VK_LSHIFT] = false;
+			nVirtKey = GetKeyState(VK_RSHIFT);
+			if ((nVirtKey & SHIFTED) == 0)
+				vkKeys[VK_RSHIFT] = false;
+			break;
+		case VK_CONTROL:
+			nVirtKey = GetKeyState(VK_LCONTROL);
+			if ((nVirtKey & SHIFTED) == 0)
+				vkKeys[VK_LCONTROL] = false;
+			nVirtKey = GetKeyState(VK_RCONTROL);
+			if ((nVirtKey & SHIFTED) == 0)
+				vkKeys[VK_RCONTROL] = false;
+			break;
+		}
+		InvalidateRect(hwnd, NULL, TRUE);
+		return 0;
+		break;
+
+
 	case WM_CHAR:
 		switch (wParam)
 		{
@@ -63,8 +119,22 @@ LRESULT WINAPI WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 	case WM_PAINT:
 		hdc = BeginPaint(hwnd, &ps);
-		GetClientRect(hwnd, &rect);
-		TextOut(hdc, rect.right / 2, rect.bottom / 2, &ch, 1);
+		TextOut(hdc, 0, 0, &ch, 1);
+		for (int i = 0; i < 16; i++)
+		{
+			for (int j = 0; j < 16; j++)
+			{
+				if (vkKeys[i * 16 + j])
+				{
+					SetBkMode(hdc, OPAQUE);
+					TextOut(hdc, j * chWidth + chWidth * 2, i * chHeight + chHeight * 2, "T ", 2);
+				}
+				else {
+					SetBkMode(hdc, TRANSPARENT);
+					TextOut(hdc, j * chWidth + chWidth * 2, i * chHeight + chHeight * 2, "F ", 2);
+				}
+			}
+		}
 		EndPaint(hwnd, &ps);
 		return 0;
 	default:
@@ -85,7 +155,7 @@ bool CreateMainWindow(HINSTANCE hInstance, int nCmdShow)
 	wcx.hInstance = hInstance;
 	wcx.hIcon = NULL;
 	wcx.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcx.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+	wcx.hbrBackground = (HBRUSH)GetStockObject(GRAY_BRUSH);
 	wcx.lpszMenuName = NULL;
 	wcx.lpszClassName = CLASS_NAME;
 	wcx.hIconSm = NULL;
