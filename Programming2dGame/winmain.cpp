@@ -3,10 +3,13 @@
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int);
 bool CreateMainWindow(HINSTANCE, int);
-
 LRESULT WINAPI WinProc(HWND, UINT, WPARAM, LPARAM);
 
 HINSTANCE hinst;
+HDC hdc;
+TCHAR ch = ' ';
+RECT rect;
+PAINTSTRUCT ps;
 
 const char CLASS_NAME[] = "WinMain";
 const char APP_TITLE[] = "Hello World";
@@ -36,15 +39,37 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	return msg.wParam;
 }
 
-LRESULT WINAPI WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT WINAPI WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) 
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+	case WM_CHAR:
+		switch (wParam)
+		{
+		case 0x08:
+		case 0x09:
+		case 0x0A:
+		case 0x0D:
+		case 0x1B:
+			MessageBeep((UINT)-1);
+			return 0;
+		default:
+			ch = (TCHAR)wParam;
+			InvalidateRect(hwnd, NULL, TRUE);
+			return 0;
+		}
+	case WM_PAINT:
+		hdc = BeginPaint(hwnd, &ps);
+		GetClientRect(hwnd, &rect);
+		TextOut(hdc, rect.right / 2, rect.bottom / 2, &ch, 1);
+		EndPaint(hwnd, &ps);
+		return 0;
+	default:
+		return DefWindowProc(hwnd, msg, wParam, lParam);
 	}
-	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 bool CreateMainWindow(HINSTANCE hInstance, int nCmdShow)
