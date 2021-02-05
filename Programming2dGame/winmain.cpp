@@ -78,12 +78,24 @@ LRESULT WINAPI WinProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
             //tell Windows to kill this program
             PostQuitMessage(0);
             return 0;
+        case WM_CHAR:
+            switch (wParam)
+            {
+            case ESC_KEY:
+                PostQuitMessage(0);
+                return 0;
+            }
     }
     return DefWindowProc( hWnd, msg, wParam, lParam );
 }
 
 bool CreateMainWindow(HWND &hwnd, HINSTANCE hInstance, int nCmdShow) 
 { 
+    DWORD style;
+    if (FULLSCREEN)
+        style = WS_EX_TOPMOST | WS_VISIBLE | WS_POPUP;
+    else
+        style = WS_OVERLAPPEDWINDOW;
     WNDCLASSEX wcx; 
  
     // Fill in the window class structure with parameters 
@@ -109,8 +121,8 @@ bool CreateMainWindow(HWND &hwnd, HINSTANCE hInstance, int nCmdShow)
     // Create window
     hwnd = CreateWindow(
         CLASS_NAME,             // name of the window class
-        GAME_TITLE,             // title bar text
-        WS_OVERLAPPEDWINDOW,    // window style
+        GAME_TITLE,
+        style,                  // title bar text // window style
         CW_USEDEFAULT,          // default horizontal position of window
         CW_USEDEFAULT,          // default vertical position of window
         GAME_WIDTH,             // width of window
