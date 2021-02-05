@@ -1,183 +1,133 @@
+#define _CRTDBG_MAP_ALLOC
 #define WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
+#include <stdlib.h>
+#include <crtdbg.h>
+#include "graphics.h"
+
+#pragma comment(lib, "d3d9.lib")
+Graphics* graphics;
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int);
-bool CreateMainWindow(HINSTANCE, int);
+bool CreateMainWindow(HWND & , HINSTANCE, int);
 LRESULT WINAPI WinProc(HWND, UINT, WPARAM, LPARAM);
 
 HINSTANCE hinst;
-HDC hdc;
-TCHAR ch = ' ';
-RECT rect;
-PAINTSTRUCT ps;
-bool vkKeys[256];
 
-const char CLASS_NAME[] = "WinMain";
-const char APP_TITLE[] = "Hello World";
-const int WINDOW_WIDTH = 400;
-const int WINDOW_HEIGHT = 400;
+
 
 int WINAPI WinMain(HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR lpCmdLine,
 	int nCmdShow)
 {
-	MSG msg;
-	if (!CreateMainWindow(hInstance, nCmdShow))
-		return false;
+	#if defined(DEBUG) | defined(_DEBUG)
+        _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+    #endif
 
-	int done = 0;
-	while (!done) 
-	{
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			if (msg.message == WM_QUIT)
-				done = 1;
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-	}
-	return msg.wParam;
+    MSG	 msg;
+    HWND hwnd = NULL;
+
+    // Create the window
+    if (!CreateMainWindow(hwnd, hInstance, nCmdShow))
+        return 1;
+
+    try{
+        // Create Graphics object
+        graphics = new Graphics;
+        // Initialize Graphics, throws GameError
+        graphics->initialize(hwnd, GAME_WIDTH, GAME_HEIGHT, FULLSCREEN);
+
+        // main message loop
+        int done = 0;
+        while (!done)
+        {
+            // PeekMessage,non-blocking method for checking for Windows messages.
+            if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
+            {
+                // look for quit message
+                if (msg.message == WM_QUIT)
+                    done = 1;
+
+                // decode and pass messages on to WinProc
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            } else
+                graphics->showBackbuffer();
+        }
+        SAFE_DELETE(graphics);  // free memory before exit
+        return msg.wParam;
+    }
+    catch(const GameError &err)
+    {
+        MessageBox(NULL, err.getMessage(), "Error", MB_OK);
+    }
+    catch(...)
+    {
+        MessageBox(NULL, "Unknown error occured in game.", "Error", MB_OK);
+    }
+    SAFE_DELETE(graphics);  // free memory before exit
+    return 0;
+}
+LRESULT WINAPI WinProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
+{
+    switch( msg )
+    {
+        case WM_DESTROY:
+            //tell Windows to kill this program
+            PostQuitMessage(0);
+            return 0;
+    }
+    return DefWindowProc( hWnd, msg, wParam, lParam );
 }
 
-LRESULT WINAPI WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	short nVirtKey;
-	const short SHIFTED = (short)0x8000;
-	TEXTMETRIC tm;
-	DWORD chWidth = 20;
-	DWORD chHeight = 20;
-	switch (msg) 
-	{
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-	case WM_KEYDOWN:
-		vkKeys[wParam] = true;
-		switch (wParam)
-		{
-		case VK_SHIFT:
-			nVirtKey = GetKeyState(VK_LSHIFT);
-			if (nVirtKey & SHIFTED)
-				vkKeys[VK_LSHIFT] = true;
-			nVirtKey = GetKeyState(VK_RSHIFT);
-			if (nVirtKey & SHIFTED)
-				vkKeys[VK_RSHIFT] = true;
-			break;
-		case VK_CONTROL:
-			nVirtKey = GetKeyState(VK_LCONTROL);
-			if (nVirtKey & SHIFTED)
-				vkKeys[VK_LCONTROL] = true;
-			nVirtKey = GetKeyState(VK_RCONTROL);
-			if (nVirtKey & SHIFTED)
-				vkKeys[VK_RCONTROL] = true;
-			break;
-		}
-		InvalidateRect(hwnd, NULL, TRUE);
-		return 0;
-		break;
-	case WM_KEYUP:
-		vkKeys[wParam] = false;
-		switch (wParam)
-		{
-		case VK_SHIFT:
-			nVirtKey = GetKeyState(VK_LSHIFT);
-			if ((nVirtKey & SHIFTED) == 0)
-				vkKeys[VK_LSHIFT] = false;
-			nVirtKey = GetKeyState(VK_RSHIFT);
-			if ((nVirtKey & SHIFTED) == 0)
-				vkKeys[VK_RSHIFT] = false;
-			break;
-		case VK_CONTROL:
-			nVirtKey = GetKeyState(VK_LCONTROL);
-			if ((nVirtKey & SHIFTED) == 0)
-				vkKeys[VK_LCONTROL] = false;
-			nVirtKey = GetKeyState(VK_RCONTROL);
-			if ((nVirtKey & SHIFTED) == 0)
-				vkKeys[VK_RCONTROL] = false;
-			break;
-		}
-		InvalidateRect(hwnd, NULL, TRUE);
-		return 0;
-		break;
+bool CreateMainWindow(HWND &hwnd, HINSTANCE hInstance, int nCmdShow) 
+{ 
+    WNDCLASSEX wcx; 
+ 
+    // Fill in the window class structure with parameters 
+    // that describe the main window. 
+    wcx.cbSize = sizeof(wcx);           // size of structure 
+    wcx.style = CS_HREDRAW | CS_VREDRAW;    // redraw if size changes 
+    wcx.lpfnWndProc = WinProc;          // points to window procedure 
+    wcx.cbClsExtra = 0;                 // no extra class memory 
+    wcx.cbWndExtra = 0;                 // no extra window memory 
+    wcx.hInstance = hInstance;          // handle to instance 
+    wcx.hIcon = NULL; 
+    wcx.hCursor = LoadCursor(NULL,IDC_ARROW);   // predefined arrow 
+    wcx.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);    // black background 
+    wcx.lpszMenuName =  NULL;           // name of menu resource 
+    wcx.lpszClassName = CLASS_NAME;     // name of window class 
+    wcx.hIconSm = NULL;                 // small class icon 
+ 
+    // Register the window class. 
+    // RegisterClassEx returns 0 on error.
+    if (RegisterClassEx(&wcx) == 0)    // if error
+        return false;
 
+    // Create window
+    hwnd = CreateWindow(
+        CLASS_NAME,             // name of the window class
+        GAME_TITLE,             // title bar text
+        WS_OVERLAPPEDWINDOW,    // window style
+        CW_USEDEFAULT,          // default horizontal position of window
+        CW_USEDEFAULT,          // default vertical position of window
+        GAME_WIDTH,             // width of window
+        GAME_HEIGHT,            // height of the window
+        (HWND) NULL,            // no parent window
+        (HMENU) NULL,           // no menu
+        hInstance,              // handle to application instance
+        (LPVOID) NULL);         // no window parameters
 
-	case WM_CHAR:
-		switch (wParam)
-		{
-		case 0x08:
-		case 0x09:
-		case 0x0A:
-		case 0x0D:
-		case 0x1B:
-			MessageBeep((UINT)-1);
-			return 0;
-		default:
-			ch = (TCHAR)wParam;
-			InvalidateRect(hwnd, NULL, TRUE);
-			return 0;
-		}
-	case WM_PAINT:
-		hdc = BeginPaint(hwnd, &ps);
-		TextOut(hdc, 0, 0, &ch, 1);
-		for (int i = 0; i < 16; i++)
-		{
-			for (int j = 0; j < 16; j++)
-			{
-				if (vkKeys[i * 16 + j])
-				{
-					SetBkMode(hdc, OPAQUE);
-					TextOut(hdc, j * chWidth + chWidth * 2, i * chHeight + chHeight * 2, "T ", 2);
-				}
-				else {
-					SetBkMode(hdc, TRANSPARENT);
-					TextOut(hdc, j * chWidth + chWidth * 2, i * chHeight + chHeight * 2, "F ", 2);
-				}
-			}
-		}
-		EndPaint(hwnd, &ps);
-		return 0;
-	default:
-		return DefWindowProc(hwnd, msg, wParam, lParam);
-	}
-}
+    // if there was an error creating the window
+    if (!hwnd)
+        return false;
 
-bool CreateMainWindow(HINSTANCE hInstance, int nCmdShow)
-{
-	WNDCLASSEX wcx;
-	HWND hwnd;
+    // Show the window
+    ShowWindow(hwnd, nCmdShow);
 
-	wcx.cbSize = sizeof(wcx);
-	wcx.style = CS_HREDRAW | CS_VREDRAW;
-	wcx.lpfnWndProc = WinProc;
-	wcx.cbClsExtra = 0;
-	wcx.cbWndExtra = 0;
-	wcx.hInstance = hInstance;
-	wcx.hIcon = NULL;
-	wcx.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcx.hbrBackground = (HBRUSH)GetStockObject(GRAY_BRUSH);
-	wcx.lpszMenuName = NULL;
-	wcx.lpszClassName = CLASS_NAME;
-	wcx.hIconSm = NULL;
-	if (RegisterClassEx(&wcx) == 0)
-		return false;
-	hwnd = CreateWindow(
-		CLASS_NAME,
-		APP_TITLE,
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		WINDOW_WIDTH,
-		WINDOW_HEIGHT,
-		(HWND) NULL,
-		(HMENU) NULL,
-		hInstance,
-		(LPVOID) NULL);
-
-	if (!hwnd)
-		return false;
-
-	ShowWindow(hwnd, nCmdShow);
-	UpdateWindow(hwnd);
-	return true;
+    // Send a WM_PAINT message to the window procedure
+    UpdateWindow(hwnd);
+    return true;
 }
