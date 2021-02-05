@@ -7,6 +7,8 @@
 #include "graphics.h"
 
 #pragma comment(lib, "d3d9.lib")
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "gdi32.lib")
 Graphics* graphics;
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int);
