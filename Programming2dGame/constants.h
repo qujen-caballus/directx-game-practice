@@ -12,9 +12,17 @@ const char CLASS_NAME[] = "WinMain";
 const char GAME_TITLE[] = "DirectX Window";
 const bool FULLSCREEN = false;
 const UINT GAME_WIDTH = 640;
-const UINT GAME_HEIGHT = 640;
+const UINT GAME_HEIGHT = 480;
+
+const double PI = 3.14159265;
+const float FRAME_RATE = 200.0f;
+const float MIN_FRAME_RATE = 10.0f;
+const float MIN_FRAME_TIME = 1.0f / FRAME_RATE;
+const float MAX_FRAME_TIME = 1.0f / MIN_FRAME_RATE;
 
 
-const byte ESC_KEY = VK_ESCAPE;
+const UCHAR ESC_KEY = VK_ESCAPE;
+const UCHAR ALT_KEY = VK_MENU;
+const UCHAR ENTER_KEY = VK_RETURN;
 
 #endif

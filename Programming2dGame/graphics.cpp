@@ -88,3 +88,37 @@ HRESULT Graphics::showBackbuffer()
 	result = device3d->Present(NULL, NULL, NULL, NULL);
 	return result;
 }
+
+bool Graphics::isAdapterCompatible()
+{
+    UINT modes = direct3d->GetAdapterModeCount(D3DADAPTER_DEFAULT, 
+                                            d3dpp.BackBufferFormat);
+    for(UINT i=0; i<modes; i++)
+    {
+        result = direct3d->EnumAdapterModes( D3DADAPTER_DEFAULT, 
+                                        d3dpp.BackBufferFormat,
+                                        i, &pMode);
+        if( pMode.Height == d3dpp.BackBufferHeight &&
+            pMode.Width  == d3dpp.BackBufferWidth &&
+            pMode.RefreshRate >= d3dpp.FullScreen_RefreshRateInHz)
+            return true;
+    }
+    return false;
+}
+
+HRESULT Graphics::getDeviceState()
+{ 
+    result = E_FAIL;    // default to fail, replace on success
+    if (device3d == NULL)
+        return  result;
+    result = device3d->TestCooperativeLevel(); 
+    return result;
+}
+
+HRESULT Graphics::reset()
+{
+    result = E_FAIL;    // default to fail, replace on success
+    initD3Dpp();                        // init D3D presentation parameters
+    result = device3d->Reset(&d3dpp);   // attempt to reset graphics device
+    return result;
+}
